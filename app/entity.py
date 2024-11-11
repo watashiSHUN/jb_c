@@ -6,7 +6,10 @@ from fastapi import WebSocket
 
 
 class Player:
-    def __init__(self, player_id: str, websocket: WebSocket, game):
+    # NOTE forward reference:
+    # 1. https://peps.python.org/pep-0484/#forward-references
+    # 2. https://github.com/microsoft/pylance-release/issues/2419
+    def __init__(self, player_id: str, websocket: WebSocket, game: "Game"):
         # player property
         self.player_id = player_id
         self.websocket = websocket
