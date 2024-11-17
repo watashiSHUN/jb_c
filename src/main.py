@@ -1,8 +1,10 @@
+import os
 from typing import Any
 
-import entity
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
+
+import entity
 
 app = FastAPI()
 
@@ -24,7 +26,7 @@ html = """
         <script>
             var client_id = Date.now()
             document.querySelector("#ws-id").textContent = client_id;
-            var ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
+            var ws = new WebSocket(`SERVER_ADDRESS/ws/${client_id}`);
             ws.onmessage = function(event) {
                 var messages = document.getElementById('messages')
                 var message = document.createElement('li')
@@ -42,7 +44,22 @@ html = """
     </body>
 </html>
 """
+host_port = os.environ.get("PORT", 8080)
+service_name = os.environ.get("K_SERVICE", None)
+print("DEBUG service_name:", service_name)
+# user specified environment variables
+project_number = os.environ.get("PROJECT_NUMBER", None)
+region = os.environ.get("REGION", None)
+host = "ws://localhost"  # protocol and host
 
+if service_name is not None:
+    host = f"wss://{service_name}-{project_number}.{region}.run.app"
+
+# Get deterministic URL
+# https://cloud.google.com/run/docs/triggering/https-request#deterministic
+host_address = ":".join([host, str(host_port)])
+
+html = html.replace("SERVER_ADDRESS", host_address)
 game = entity.Game()
 
 
@@ -65,3 +82,10 @@ async def websocket_endpoint(websocket: WebSocket, player_id: str):
         await player.play()
     except WebSocketDisconnect:
         await game.remove_player(player)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    print("DEBUG hosting message:", host_address)
+    uvicorn.run(app, host="0.0.0.0", port=int(host_port))
